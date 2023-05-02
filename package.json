@@ -1,0 +1,14 @@
+{
+  "name": "daily-mario-quiz",
+  "version": "1.0.0",
+  "scripts": {
+    "server": "open http://localhost:8080 && nodemon ./server.js",
+    "build": "node build.js"
+  },
+  "devDependencies": {
+    "aws-sdk": "^2.1323.0",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "nodemon": "^2.0.20"
+  }
+}
