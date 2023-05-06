@@ -1,48 +1,40 @@
-const { handleGet, handlePost, handlePut } = require('./handlers');
+const { handleNewQuiz, handleQuizResults } = require('./handlers');
 
 exports.handler = async (event, context) => {
-	//console.log('Received event:', JSON.stringify(event, null, 2));
-	let body;
-	let statusCode = '200';
-
-	const corsHeaders = {
-		'Access-Control-Allow-Origin': '*',
-		'Access-Control-Allow-Headers': '*',
-		'Access-Control-Allow-Methods': '*',
-	};
-
-	const headers = {
-		'Content-Type': 'application/json',
-		...corsHeaders,
-	};
-
-	try {
-		switch (event.httpMethod) {
-			case 'GET':
-				body = await handleGet(event);
+	// console.log('Received event:', JSON.stringify(event, null, 2));
+	const isFunctionUrl = Boolean(event.requestContext?.http);
+	if (isFunctionUrl && process.env.STAGE && process.env.STAGE !== 'PROD') {
+		const eventName = event.queryStringParameters?.eventName;
+		let body = {};
+		switch (eventName) {
+			case 'newQuiz':
+				body = await handleNewQuiz(event);
 				break;
-			case 'POST':
-				body = await handlePost(event);
-				break;
-			case 'PUT':
-				body = await handlePut(event);
-				break;
-			case 'OPTIONS':
-				body = {};
+			case 'quizResults':
+				body = await handleQuizResults(event);
 				break;
 			default:
-				throw new Error(`Unsupported method "${event.httpMethod}"`);
+				console.error('URL events require an eventName query param.');
 		}
-	} catch (err) {
-		statusCode = '400';
-		body = err.message;
-	} finally {
-		body = JSON.stringify(body);
+		return {
+			statusCode: 200,
+			body: JSON.stringify(body),
+		};
 	}
-
-	return {
-		statusCode,
-		body,
-		headers,
-	};
+	const isScheduled = event['detail-type'] === 'Scheduled Event';
+	if (isScheduled) {
+		const { eventName } = event.detail;
+		switch (eventName) {
+			case 'newQuiz':
+				await handleNewQuiz(event);
+				break;
+			case 'quizResults':
+				await handleQuizResults(event);
+				break;
+			default:
+				console.error('Scheduled events require an eventName.');
+		}
+		return;
+	}
+	console.error(`Event type did not match any condition.`);
 };
