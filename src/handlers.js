@@ -3,19 +3,19 @@ const { postTwitterPoll, postTwitterPollAnswer } = require('./twitter');
 const { insertQuizRecord, getLastQuizRecord } = require('./dynamo');
 
 async function handleNewQuiz() {
-	const { question, options, answer, error: openaiError } = await generateQuiz();
-	if (openaiError) {
-		return openaiError;
-	}
 	const quizNumber = await getNewQuizNumber();
 	if (!quizNumber) {
 		return { error: 'Failed to create quizNumber.' };
+	}
+	const { marioQuizTerm, question, options, answer, error: openaiError } = await generateQuiz();
+	if (openaiError) {
+		return openaiError;
 	}
 	const { id: tweetId, error: twitterError } = await postTwitterPoll(quizNumber, question, options);
 	if (twitterError) {
 		return twitterError;
 	}
-	await insertQuizRecord({ quizNumber, question, options, answer, tweetId });
+	await insertQuizRecord({ quizNumber, marioQuizTerm, question, options, answer, tweetId });
 	return { quizNumber, question, options, answer, tweetId };
 }
 
